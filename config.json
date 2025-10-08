@@ -4,5 +4,7 @@
         "password":"SuperSecurePASS",
         "recipient":"@example.com",
         "smtp_server": "smtp.gmail.com"
+        "smtp_port": 587
+        "smtp_ssltls": "tls"
     }
 }
