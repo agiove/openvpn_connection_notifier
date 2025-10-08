@@ -8,7 +8,6 @@ import datetime
 import smtplib
 import sqlite3
 import argparse
-from dateutil.parser import parse
 
 
 def get_users_list():
@@ -16,7 +15,7 @@ def get_users_list():
     data = os.popen("/usr/local/openvpn_as/scripts/sacli VPNstatus")
     data = data.read()
     data = json.loads(data)
-    data_list = data['openvpn_0']
+    data_list = data['openvpn_1']
     return data_list
 
 
@@ -24,13 +23,9 @@ def users_1min(data):
     """get users who logged in last 1 min"""
     data_list = data
     users = ""
-    now = parse(str(datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M")))
+    now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M")
     for user in data_list['client_list']:
-        connection_date = user[6]
-        connection_date = datetime.datetime.strptime(connection_date, '%a %b %d %H:%M:%S %Y')
-        difference = now - connection_date
-        if str(difference) < "0:01:00":
-            users = users + user[0] + " "
+        users = users + user[0] + " "
     return users
 
 
@@ -97,7 +92,7 @@ def db_user_check(user, ip):
 
 def send_email(subject, msg, recipients):
     """Send email via gmail"""
-    with open("config.json") as config_file:
+    with open("/home/debian/openvpn_connection_notifier-master/config.json") as config_file:
         data = json.load(config_file)
     notifications = data['notifications']
 
@@ -107,16 +102,15 @@ def send_email(subject, msg, recipients):
     smtp_pass = notifications['password']
     smtp_ssltls = notifications['ssltls']
 
-    recipients = recipients + notifications['recipient']
+    recipients = notifications['recipient']
     sender = smtp_user
     message = "Subject: {0}\n\n{1}".format(subject, msg)
 
-    server = if smtp_ssltls == "ssl" ? smtplib.SMTP_SSL(smtp_server, smtp_port) : smtplib.SMTP(smtp_server, smtp_port)
-    
-    server.ehlo()
-    if smtp_ssltls == "tls"
+    server = smtplib.SMTP_SSL(smtp_server, smtp_port) if smtp_ssltls == "ssl" else smtplib.SMTP(smtp_server, smtp_port)
+    server.set_debuglevel(1)
+    server.connect(smtp_server, smtp_port)
+    if smtp_ssltls == "tls":
         server.starttls()
-    server.ehlo()
     server.login(smtp_user, smtp_pass)
     server.sendmail(sender, recipients, message)
     server.quit()
