@@ -9,7 +9,6 @@ import smtplib
 import sqlite3
 import argparse
 from dateutil.parser import parse
-from ip2geotools.databases.noncommercial import DbIpCity
 
 
 def get_users_list():
@@ -103,28 +102,25 @@ def send_email(subject, msg, recipients):
     notifications = data['notifications']
 
     smtp_server = notifications['smtp_server']
+    smtp_port = notifications['smtp_port']
     smtp_user = notifications['username']
     smtp_pass = notifications['password']
+    smtp_ssltls = notifications['ssltls']
 
     recipients = recipients + notifications['recipient']
     sender = smtp_user
     message = "Subject: {0}\n\n{1}".format(subject, msg)
 
-    server = smtplib.SMTP(smtp_server, 587)
+    server = if smtp_ssltls == "ssl" ? smtplib.SMTP_SSL(smtp_server, smtp_port) : smtplib.SMTP(smtp_server, smtp_port)
+    
     server.ehlo()
-    server.starttls()
+    if smtp_ssltls == "tls"
+        server.starttls()
     server.ehlo()
     server.login(smtp_user, smtp_pass)
     server.sendmail(sender, recipients, message)
     server.quit()
     return "ok"
-
-
-def iplocation(ip):
-    """Serch IP location"""
-    data = DbIpCity.get(ip, api_key='free')
-    location = data.region + "," + data.country
-    return location
 
 
 def notify():
@@ -139,15 +135,14 @@ def notify():
             username = user[0]
             connected_since = user[6]
             real_ip = user[1].split(":", 1)[0]
-            location = iplocation(ip=real_ip)
             out = db_user_check(user=username, ip=real_ip)
             if out == "ko":
                 continue
             print("Notifying {0}".format(username))
             subject = "Correct access to VPN"
             msg = "Dear {0},\n\nRecently happened a correct login into your VPN account using the next data:\n\n" \
-                  "- Username: {0}\n- Real IP: {1}\n- Location: {2}\n- Date: {3}\n\nIf you don't recognize this login, please, " \
-                  "contact your sysadmin and change your password.".format(username, real_ip, location, connected_since)
+                  "- Username: {0}\n- Real IP: {1}\n- Date: {2}\n\nIf you don't recognize this login, please, " \
+                  "contact your sysadmin and change your password.".format(username, real_ip, connected_since)
             send_email(subject=subject, msg=msg, recipients=username)
     print("- Done")
     return "ok"
